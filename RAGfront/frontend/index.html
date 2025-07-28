@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura: Your Intelligent Knowledge Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Modern Blues & Grays with Subtle Teal/Purple Accents -->
+    <!-- Application Structure Plan: This SPA is a chat interface. It features a visually appealing header with a new brand name and tagline, controls for uploading documents, re-indexing, and clearing chat, a scrollable chat history area, and a fixed input bar at the bottom. It includes an initial connection status indicator and improved UI feedback. The design prioritizes a clean, modern aesthetic and intuitive user interaction, showcasing full feature set. -->
+    <!-- Visualization & Content Choices:
+        - Chat Interface: Textual chat messages for user and bot, with basic Markdown support. Goal: Interaction & Information Retrieval. Interaction: User types question, bot responds.
+        - Loading Indicator: Simple spinner to indicate AI processing. Goal: User Feedback.
+        - Source Attribution: Displays source titles and snippets for bot messages, with clickable links to reveal full content (simulated). Goal: Enhance trust and verifiability.
+        - Connection Status: Visual indicator for backend connection status.
+        - Upload Document Button: Enables users to conceptually upload new knowledge base files via a dedicated endpoint.
+        - Reindex KB Button: Allows users to conceptually trigger a re-indexing of the knowledge base.
+        - Clear Chat Button: Provides an easy way to clear the conversation history.
+        - Justification: This design focuses on clear functionality, robust user experience, and a polished, professional appearance for a RAG chatbot, separating concerns between frontend UI and backend logic, and demonstrating dynamic KB update capabilities (even if persistence is limited on free tiers).
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8FAFC; /* Lighter gray-blue background */
+            color: #263238; /* Dark blue-gray text */
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .header-gradient {
+            background-image: linear-gradient(to right, #4A00E0, #8E2DE2); /* Deep Purple to Violet */
+        }
+        .chat-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            background-color: #FFFFFF;
+            border-radius: 1rem; /* More rounded */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); /* Stronger shadow */
+            max-width: 900px;
+            margin: 1.5rem auto;
+            display: flex;
+            flex-direction: column;
+            min-height: 60vh;
+        }
+        .message-bubble {
+            max-width: 85%; /* Slightly wider bubbles */
+            padding: 0.9rem 1.2rem;
+            border-radius: 1.5rem; /* More rounded */
+            margin-bottom: 0.8rem;
+            word-wrap: break-word;
+            line-height: 1.6;
+            font-size: 1rem; /* Slightly larger font */
+        }
+        .user-message {
+            background-color: #E0F7FA; /* Light Teal */
+            align-self: flex-end;
+            border-bottom-right-radius: 0.5rem; /* Softer corner */
+            color: #00796B; /* Darker Teal text */
+        }
+        .bot-message {
+            background-color: #ECEFF1; /* Light Blue-Gray */
+            align-self: flex-start;
+            border-bottom-left-radius: 0.5rem; /* Softer corner */
+            color: #263238; /* Darker text */
+        }
+        .source-info {
+            font-size: 0.75rem;
+            color: #607D8B; /* Blue-gray 500 */
+            margin-top: 0.6rem;
+            border-top: 1px dashed #B0BEC5; /* Lighter dashed line */
+            padding-top: 0.6rem;
+        }
+        .source-link {
+            color: #42A5F5; /* Blue-400 */
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .source-link:hover {
+            text-decoration: underline;
+            color: #2196F3; /* Blue-500 */
+        }
+        .input-area {
+            background-color: #FFFFFF;
+            padding: 1.5rem; /* More padding */
+            border-top: 1px solid #E0E0E0;
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.08); /* Stronger shadow */
+            display: flex;
+            gap: 1rem; /* More space */
+            align-items: center;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+            border-radius: 1rem 1rem 0 0; /* Rounded top corners */
+        }
+        .input-field {
+            padding: 1rem; /* More padding */
+            border: 1px solid #CFD8DC; /* Lighter border */
+            border-radius: 0.75rem; /* More rounded */
+            font-size: 1rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #64B5F6; /* Blue-300 */
+            box-shadow: 0 0 0 3px rgba(100, 181, 246, 0.3); /* Focus ring */
+        }
+        .send-button {
+            background-image: linear-gradient(to right, #4CAF50, #8BC34A); /* Green gradient */
+            color: white;
+            padding: 1rem 1.5rem; /* More padding */
+            border-radius: 0.75rem; /* More rounded */
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .send-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #42A5F5; /* Blue-400 */
+            border-radius: 50%;
+            width: 32px; /* Larger spinner */
+            height: 32px;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .error-message {
+            color: #D32F2F; /* Red-700 */
+            background-color: #FFEBEE; /* Red-50 */
+            padding: 0.8rem;
+            border-radius: 0.5rem;
+            margin-top: 0.8rem;
+            font-size: 0.9rem;
+            border: 1px solid #EF9A9A; /* Red-200 border */
+        }
+        .connection-status {
+            font-size: 0.85rem;
+            margin-top: 0.6rem;
+            padding: 0.3rem 0.7rem;
+            border-radius: 0.3rem;
+            display: inline-block;
+            font-weight: 500;
+        }
+        .status-connected {
+            background-color: #E8F5E9; /* Green-50 */
+            color: #2E7D32; /* Green-800 */
+        }
+        .status-disconnected {
+            background-color: #FFEBEE; /* Red-50 */
+            color: #C62828; /* Red-800 */
+        }
+        .header-button {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 0.6rem;
+            font-size: 0.9rem;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+            cursor: pointer;
+        }
+        .header-button:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+        .copy-btn {
+            position: absolute;
+            top: 8px; /* Adjusted for larger padding */
+            right: 8px; /* Adjusted for larger padding */
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #90A4AE; /* Blue-gray 300 */
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .message-bubble:hover .copy-btn {
+            opacity: 1;
+        }
+        .copy-btn:hover {
+            color: #546E7A; /* Blue-gray 600 */
+        }
+        footer {
+            background-color: #37474F; /* Dark blue-gray for footer */
+            color: #CFD8DC;
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 0.85rem;
+            margin-top: auto; /* Pushes footer to bottom */
+            border-top: 1px solid #455A64;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+    <header class="header-gradient text-white p-6 text-center shadow-lg flex flex-col sm:flex-row justify-between items-center">
+        <div class="flex-grow text-center sm:text-left mb-3 sm:mb-0">
+            <h1 class="text-4xl md:text-5xl font-bold leading-tight">Aura: Your Intelligent Knowledge Assistant</h1>
+            <p class="text-lg mt-2 opacity-90">Your Gateway to Curated Information</p>
+            <div id="connection-status" class="connection-status status-disconnected mt-3">Connecting to backend...</div>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3 mt-4 sm:mt-0">
+            <button id="upload-doc-button" class="header-button">Upload Document</button>
+            <button id="reindex-kb-button" class="header-button">Reindex KB</button>
+            <button id="clear-chat-button" class="header-button">Clear Chat</button>
+        </div>
+    </header>
+
+    <div id="chat-history" class="chat-container">
+        <div class="message-bubble bot-message">Hello! I'm Aura, your intelligent knowledge assistant. I can answer your questions by retrieving information from my curated knowledge base. How can I help you today?</div>
+    </div>
+
+    <div class="input-area">
+        <input type="text" id="user-input" class="flex-grow input-field text-gray-700" placeholder="Ask a question..." disabled>
+        <button id="send-button" class="send-button text-white" disabled>Send</button>
+        <div id="loading-spinner" class="spinner"></div>
+    </div>
+
+    <!-- Hidden File Input -->
+    <input type="file" id="file-input" class="hidden" accept=".txt,.pdf,.docx,.csv">
+
+    <footer>
+        <p>&copy; 2025 Aura AI. All rights reserved.</p>
+    </footer>
+
+    <script>
+        const chatHistoryDiv = document.getElementById('chat-history');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const connectionStatusDiv = document.getElementById('connection-status');
+        const uploadDocButton = document.getElementById('upload-doc-button');
+        const reindexKbButton = document.getElementById('reindex-kb-button');
+        const clearChatButton = document.getElementById('clear-chat-button');
+        const fileInput = document.getElementById('file-input');
+
+        // --- Configuration ---
+        // IMPORTANT: Ensure this matches your FastAPI backend URL and port
+        const BACKEND_URL = "https://rag-chatbot-ejuh.onrender.com"; 
+        const SESSION_ID = "user_session_1"; // A simple session ID for demonstration
+
+        // --- UI Utility Functions ---
+        function addMessageToUI(text, sender, sources = []) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message-bubble', sender === 'user' ? 'user-message' : 'bot-message');
+            messageDiv.innerHTML = renderMarkdown(text); // Use innerHTML for Markdown rendering
+
+            if (sender === 'bot') {
+                // Add copy button
+                const copyButton = document.createElement('button');
+                copyButton.classList.add('copy-btn');
+                copyButton.textContent = 'Copy';
+                copyButton.onclick = () => copyToClipboard(text);
+                messageDiv.appendChild(copyButton);
+            }
+
+            if (sender === 'bot' && sources.length > 0) {
+                const sourcesDiv = document.createElement('div');
+                sourcesDiv.classList.add('source-info');
+                sourcesDiv.innerHTML = '<strong>Sources:</strong><br>';
+                sources.forEach((source, index) => {
+                    const sourceLink = document.createElement('a');
+                    sourceLink.href = '#'; 
+                    sourceLink.onclick = (e) => {
+                        e.preventDefault();
+                        alert(`Source: ${source.title}\n\nContent Snippet: ${source.content_snippet}\n\nFull Metadata: ${JSON.stringify(source.metadata, null, 2)}`);
+                    };
+                    sourceLink.classList.add('source-link');
+                    sourceLink.textContent = `${source.title}`;
+                    sourcesDiv.appendChild(sourceLink);
+                    if (index < sources.length - 1) {
+                        sourcesDiv.append(', ');
+                    }
+                    sourcesDiv.appendChild(document.createElement('br')); // New line for each source
+                });
+                messageDiv.appendChild(sourcesDiv);
+            }
+            chatHistoryDiv.appendChild(messageDiv);
+            chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight; // Auto-scroll to bottom
+        }
+
+        function displayError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.classList.add('message-bubble', 'bot-message', 'error-message');
+            errorDiv.textContent = `Error: ${message}`;
+            chatHistoryDiv.appendChild(errorDiv);
+            chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+        }
+
+        function setLoadingState(isLoading) {
+            sendButton.disabled = isLoading;
+            userInput.disabled = isLoading;
+            loadingSpinner.style.display = isLoading ? 'block' : 'none';
+            // Disable header buttons during loading
+            uploadDocButton.disabled = isLoading;
+            reindexKbButton.disabled = isLoading;
+            clearChatButton.disabled = isLoading;
+        }
+
+        function updateConnectionStatus(isConnected) {
+            if (isConnected) {
+                connectionStatusDiv.textContent = "Connected to backend";
+                connectionStatusDiv.classList.remove('status-disconnected');
+                connectionStatusDiv.classList.add('status-connected');
+                sendButton.disabled = false; // Enable send button only when connected
+                userInput.disabled = false;
+                uploadDocButton.disabled = false; // Enable header buttons
+                reindexKbButton.disabled = false;
+                clearChatButton.disabled = false;
+            } else {
+                connectionStatusDiv.textContent = "Connecting to backend...";
+                connectionStatusDiv.classList.remove('status-connected');
+                connectionStatusDiv.classList.add('status-disconnected');
+                sendButton.disabled = true;
+                userInput.disabled = true;
+                uploadDocButton.disabled = true; // Disable header buttons
+                reindexKbButton.disabled = true;
+                clearChatButton.disabled = true;
+            }
+        }
+
+        function copyToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                alert('Copied to clipboard!');
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function renderMarkdown(markdownText) {
+            let html = markdownText;
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            html = html.replace(/^- (.*)$/gm, '<li>$1</li>');
+            if (html.includes('<li>')) {
+                html = `<ul>${html}</ul>`;
+            }
+            return html;
+        }
+
+        // --- Chat Logic ---
+        sendButton.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (message === '') return;
+
+            addMessageToUI(message, 'user');
+            userInput.value = '';
+            setLoadingState(true);
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message, session_id: SESSION_ID }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                addMessageToUI(data.response, 'bot', data.sources);
+
+            } catch (error) {
+                console.error('Error sending message to backend:', error);
+                displayError(`Failed to get response from AI: ${error.message}. Please ensure the backend is running.`);
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        // --- Re-indexing Logic ---
+        reindexKbButton.addEventListener('click', async () => {
+            if (!confirm("Are you sure you want to re-index the Knowledge Base? This will reload all documents and might take a moment.")) {
+                return;
+            }
+            addMessageToUI("Re-indexing knowledge base...", 'bot');
+            setLoadingState(true);
+            try {
+                const response = await fetch(`${BACKEND_URL}/reindex_kb`, {
+                    method: 'POST',
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                addMessageToUI(`Knowledge Base Re-indexed: ${data.message} (${data.documents_indexed} documents processed).`, 'bot');
+            } catch (error) {
+                console.error('Error re-indexing KB:', error);
+                displayError(`Failed to re-index Knowledge Base: ${error.message}.`);
+            } finally {
+                setLoadingState(false);
+            }
+        });
+
+        // --- Upload Document Logic ---
+        uploadDocButton.addEventListener('click', () => {
+            fileInput.click(); // Programmatically click the hidden file input
+        });
+
+        fileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            addMessageToUI(`Uploading "${file.name}"...`, 'user');
+            setLoadingState(true);
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/upload_document`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                addMessageToUI(`Upload successful: "${data.filename}". ${data.message}`, 'bot');
+            } catch (error) {
+                console.error('Error uploading document:', error);
+                displayError(`Failed to upload document: ${error.message}.`);
+            } finally {
+                setLoadingState(false);
+                fileInput.value = ''; // Clear the file input
+            }
+        });
+
+        // --- Clear Chat Logic ---
+        clearChatButton.addEventListener('click', () => {
+            if (confirm("Are you sure you want to clear the chat history?")) {
+                chatHistoryDiv.innerHTML = '<div class="message-bubble bot-message">Hello! I\'m Aura, your intelligent knowledge assistant. I can answer your questions by retrieving information from my curated knowledge base. How can I help you today?</div>';
+                chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+            }
+        });
+
+
+        // Initial health check on load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkBackendHealth();
+        });
+
+        // Periodically check backend health
+        setInterval(checkBackendHealth, 5000); // Check every 5 seconds
+
+        async function checkBackendHealth() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/health`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === "ok" && data.llm_initialized && data.vectorstore_initialized) {
+                        updateConnectionStatus(true);
+                    } else {
+                        updateConnectionStatus(false);
+                        displayError("Backend is running but not fully initialized. Check backend console for errors.");
+                    }
+                } else {
+                    updateConnectionStatus(false);
+                }
+            } catch (error) {
+                updateConnectionStatus(false);
+                console.error("Backend connection error:", error);
+            }
+        }
+    </script>
+</body>
+</html>
