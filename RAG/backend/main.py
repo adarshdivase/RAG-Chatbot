@@ -56,10 +56,9 @@ origins = [
     "http://127.0.0.1:8000",
     "http://localhost:5500", # VS Code Live Server
     "http://127.0.0.1:5500",
-    "https://rag-chatbot-roan-eight.vercel.app/",
-    "https://rag-chatbot-iksq.onrender.com", # Your deployed backend URL
+    "https://rag-chatbot-roan-eight.vercel.app",   # **FIXED: No trailing slash, added comma**
+    "https://rag-chatbot-iksq.onrender.com",       # **FIXED: Added comma**
     "null" # For local file:// access
-    # Add your frontend's deployed URL here (e.g., "https://your-frontend-domain.com")
 ]
 
 app.add_middleware(
