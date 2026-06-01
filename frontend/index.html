@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aura Enterprise | Knowledge Assistant</title>
+  <meta name="description" content="Enterprise RAG assistant with cited answers over your document knowledge base." />
+  <meta property="og:title" content="Aura Enterprise — Knowledge Assistant" />
+  <meta property="og:description" content="Retrieval-Augmented Generation with Gemini, ChromaDB, and source citations." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="config.js"></script>
+</head>
+<body>
+  <div id="indexing-banner" class="indexing-banner hidden" role="status">
+    <span class="spinner inline-spinner"></span>
+    <span id="indexing-text">Indexing knowledge base — first startup may take up to a minute…</span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">A</div>
+      <div>
+        <h1>Aura Enterprise</h1>
+        <p>Retrieval-Augmented AI</p>
+      </div>
+    </div>
+
+    <div id="status-pill" class="status-pill offline">
+      <span class="status-dot"></span>
+      <span>Connecting…</span>
+    </div>
+
+    <div class="panel">
+      <h3>Knowledge base</h3>
+      <div class="stat-grid">
+        <div class="stat"><strong id="stat-docs">—</strong><span>Documents</span></div>
+        <div class="stat"><strong id="stat-chunks">—</strong><span>Chunks</span></div>
+        <div class="stat"><strong id="stat-sessions">—</strong><span>Sessions</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Indexed files</h3>
+      <ul id="doc-list" class="doc-list"><li class="muted">Loading…</li></ul>
+    </div>
+
+    <div class="btn-row">
+      <button id="upload-btn" class="btn btn-primary" type="button">Upload document</button>
+      <button id="reindex-btn" class="btn btn-secondary" type="button">Reindex knowledge base</button>
+      <button id="export-btn" class="btn btn-secondary" type="button">Export chat</button>
+      <button id="clear-btn" class="btn btn-danger" type="button">Clear chat session</button>
+      <input id="file-input" type="file" class="hidden" accept=".txt,.pdf,.docx,.csv,.md" />
+    </div>
+
+    <div class="panel">
+      <h3>Connection</h3>
+      <label class="field-label">API URL</label>
+      <input id="api-url" type="text" placeholder="http://127.0.0.1:8000" />
+      <label class="field-label">API Key (optional)</label>
+      <input id="api-key" type="password" placeholder="X-API-Key" />
+      <button id="save-config" class="btn btn-secondary" type="button">Save & reload</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="chat-header">
+      <div>
+        <h2>Knowledge Assistant</h2>
+        <p class="session-line">Session: <code id="session-label"></code></p>
+      </div>
+      <div class="header-actions">
+        <button id="theme-toggle" class="btn-icon" type="button" title="Toggle theme" aria-label="Toggle theme">◐</button>
+        <div id="loading" class="spinner hidden" title="Processing"></div>
+      </div>
+    </header>
+
+    <div id="suggestions" class="suggestions" aria-label="Suggested questions"></div>
+
+    <div id="messages" class="messages"></div>
+
+    <footer class="composer">
+      <textarea id="user-input" rows="1" placeholder="Ask a question about your knowledge base… (Enter to send)"></textarea>
+      <button id="send-btn" class="btn btn-primary composer-send" type="button">Send</button>
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
