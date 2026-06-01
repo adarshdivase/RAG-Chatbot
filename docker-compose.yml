@@ -1,0 +1,31 @@
+services:
+  rag-api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - backend/.env
+    volumes:
+      - ./data:/app/data
+      - chroma_data:/app/backend/storage/chroma
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/live')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  rag-ui:
+    image: nginx:alpine
+    ports:
+      - "5500:80"
+    volumes:
+      - ../RAG-Chatbot-Frontend/frontend:/usr/share/nginx/html:ro
+    depends_on:
+      rag-api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  chroma_data:
